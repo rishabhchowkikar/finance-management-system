@@ -1,11 +1,11 @@
 'use server';
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { ID } from "node-appwrite";
+import { ID, Query } from "node-appwrite";
 import { CountryCode, ProcessorTokenCreateRequest, ProcessorTokenCreateRequestProcessorEnum, Products } from "plaid";
 import { createAdminClient, createSessionClient } from "../appwrite";
-import { addFundingSource, createDwollaCustomer } from "../dwolla.actions";
-import { plaidClient } from "../plaid";
+import { addFundingSource, createDwollaCustomer } from "./dwolla.actions";
+import { plaidClient } from "@/lib/plaid";
 import { encryptId, extractCustomerIdFromUrl, parseStringify } from "../utils";
 
 const {
@@ -15,6 +15,20 @@ const {
 } = process.env
 
 
+export const getUserInfo = async ({ userId }: getUserInfoProps) => {
+    try {
+        const { database } = await createAdminClient();
+        const user = await database.listDocuments(
+            DATABASE_ID!,
+            USER_COLLECTION_ID!,
+            [Query.equal('userId', [userId])]
+        )
+        return parseStringify(user.documents[0])
+    } catch (error) {
+        console.log(error)
+    }
+}
+
 // 3:05:35 sign-up
 
 export const signIn = async ({ email, password }: signInProps) => {
@@ -23,17 +37,19 @@ export const signIn = async ({ email, password }: signInProps) => {
 
         const { account } = await createAdminClient();
 
-        const response = await account.createEmailPasswordSession(email, password);
+        const session = await account.createEmailPasswordSession(email, password);
 
         const cookieStore = await cookies();
-        cookieStore.set("appwrite-session", response.secret, {
+        cookieStore.set("appwrite-session", session.secret, {
             path: "/",
             httpOnly: true,
             sameSite: "strict",
             secure: true
         })
 
-        return parseStringify(response);
+        const user = await getUserInfo({ userId: session.userId })
+
+        return parseStringify(user);
 
     } catch (error) {
         console.log("error", error)
@@ -60,7 +76,7 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
             `${firstName} ${lastName}`
         );
 
-        if (!newUserAccount) throw new Error(`Error creating user`)
+        if (!newUserAccount) throw new Error(`Error creating user`);
 
         const dwollaCustomerUrl = await createDwollaCustomer({
             ...userData,
@@ -100,7 +116,9 @@ export async function getLoggedInUser() {
     try {
         const { account } = await createSessionClient();
 
-        const user = await account.get();
+        const result = await account.get();
+
+        const user = await getUserInfo({ userId: result.$id })
 
         return parseStringify(user);
     } catch (error) {
@@ -132,28 +150,28 @@ export const createLinkToken = async (user: User) => {
             client_name: `${user.firstName} ${user.lastName}`,
             products: ['auth'] as Products[],
             language: 'en',
-            country_codes: ['US'] as CountryCode[],
+            country_codes: ["US"] as CountryCode[],
         }
 
         const response = await plaidClient.linkTokenCreate(tokenParams)
 
         return parseStringify({ linkToken: response.data.link_token })
     } catch (error) {
-        console.log(error)
+        console.log(error);
     }
 }
 
-export const createBankAccount = async ({ userId, bankId, accountId, accessToken, fundingSourceUrl, sharableId }: createBankAccountProps) => {
+export const createBankAccount = async ({ userId, bankId, accountId, accessToken, fundingSourceUrl, shareableId }: createBankAccountProps) => {
     try {
         const { database } = await createAdminClient();
         const bankAccount = await database.createDocument(
             DATABASE_ID!,
             BANK_COLLECTION_ID!,
             ID.unique(),
-            { userId, bankId, accountId, accessToken, fundingSourceUrl, sharableId }
+            { userId, bankId, accountId, accessToken, fundingSourceUrl, shareableId }
         )
 
-        return parseStringify(bankAccount)
+        return parseStringify(bankAccount);
     } catch (error) {
         console.log(error)
     }
@@ -161,12 +179,12 @@ export const createBankAccount = async ({ userId, bankId, accountId, accessToken
 
 export const exchangePublicToken = async ({ publicToken, user }: exchangePublicTokenProps) => {
     try {
-
         // Exchange public token for access token and item id
         const response = await plaidClient.itemPublicTokenExchange({
             public_token: publicToken
-        });
+        })
 
+        // extracting the accessToken and item id from the response\
         const accessToken = response.data.access_token;
         const itemId = response.data.item_id;
 
@@ -176,18 +194,19 @@ export const exchangePublicToken = async ({ publicToken, user }: exchangePublicT
         })
 
         // Extracting the account data form the response
-        const accountData = accountsResponse.data.accounts[0]
+        const accountData = accountsResponse.data.accounts[0];
+
 
         // Create a porcessor token for Dwolla using the access token and account id
 
-        // this is the request token
+        //1. this is the request token
         const request: ProcessorTokenCreateRequest = {
             access_token: accessToken,
             account_id: accountData.account_id,
-            processor: "dwolla" as ProcessorTokenCreateRequestProcessorEnum
+            processor: "dwolla" as ProcessorTokenCreateRequestProcessorEnum,
         }
 
-        // now processor token
+        //2. now processor token
 
         const processorTokenResponse = await plaidClient.processorTokenCreate(request);
         const processorToken = processorTokenResponse.data.processor_token;
@@ -197,11 +216,11 @@ export const exchangePublicToken = async ({ publicToken, user }: exchangePublicT
         const fundingSourceUrl = await addFundingSource({
             dwollaCustomerId: user.dwollaCustomerId,
             processorToken,
-            bankName: accountData.name
+            bankName: accountData.name,
         })
 
         // if the funding source url is not created , throw an error
-        if (!fundingSourceUrl) throw Error
+        if (!fundingSourceUrl) throw Error;
 
         // Creating a bank account using the user id, item id , account id ,access token, funding source url ,and sharable id
         await createBankAccount({
@@ -210,12 +229,13 @@ export const exchangePublicToken = async ({ publicToken, user }: exchangePublicT
             accountId: accountData.account_id,
             accessToken,
             fundingSourceUrl,
-            sharableId: encryptId(accountData.account_id)
+            shareableId: encryptId(accountData.account_id)
         })
 
         // Revalidate the path to reflec the changes
         revalidatePath("/");
 
+        // Return a success messaage
         return parseStringify({
             publicTokenExchange: "complete"
         })
@@ -223,3 +243,37 @@ export const exchangePublicToken = async ({ publicToken, user }: exchangePublicT
         console.log("An error occurred while creating exhanging token:", error);
     }
 }
+
+
+// date - 12/04/25 video time 3:58:56 checking and configurring the exchangePublictoken function
+
+export const getBanks = async ({ userId }: getBanksProps) => {
+    try {
+        const { database } = await createAdminClient();
+        const banks = await database.listDocuments(
+            DATABASE_ID!,
+            BANK_COLLECTION_ID!,
+            [Query.equal('userId', [userId])]
+        )
+        return parseStringify(banks.documents)
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+
+export const getBank = async ({ documentId }: getBankProps) => {
+    try {
+        const { database } = await createAdminClient();
+        const bank = await database.listDocuments(
+            DATABASE_ID!,
+            BANK_COLLECTION_ID!,
+            [Query.equal('$id', [documentId])]
+        )
+        return parseStringify(bank.documents[0])
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+

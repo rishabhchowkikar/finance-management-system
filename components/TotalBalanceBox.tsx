@@ -18,7 +18,7 @@ const TotalBalanceBox = ({ accounts = [], totalBanks, totalCurrentBalance }: Tot
                 </h2>
                 <div className='flex flex-col gap-2'>
                     <p className='total-balance-label'>Total Current Balance</p>
-                    <div className="total-balance-amount placeholder flex-center gap-2" >
+                    <div className="total-balance-amount placeholder flex-start gap-2" >
                         <AnimatedCountup amount={totalCurrentBalance} />
                     </div>
                 </div>

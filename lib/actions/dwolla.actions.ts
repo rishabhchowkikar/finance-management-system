@@ -80,7 +80,7 @@ export const createTransfer = async ({
                 },
             },
             amount: {
-                currency: "USD",
+                currency: "USD", // any error change to USD
                 value: amount,
             },
         };
