@@ -19,14 +19,11 @@ const Home = async ({ searchParams }: SearchParamProps) => {
 
   if (!accounts) return;
 
-  const accountData = accounts?.data;
+  const accountsData = accounts?.data;
 
-  const appwriteItemId = (id as string) || accountData[0]?.appwriteItemId;
+  const appwriteItemId = (id as string) || accountsData[0]?.appwriteItemId;
 
   const account = await getAccount({ appwriteItemId })
-
-
-  console.log({ accounts: accounts?.data, account: account })
 
 
   return (
@@ -35,14 +32,14 @@ const Home = async ({ searchParams }: SearchParamProps) => {
         <header className="home-header">
           <HeaderBox type="greeting" title="Welcome" user={`${loggedIn?.firstName} ${loggedIn.lastName}` || "Guest"} subtext="Access and Manage your account and Transactions Efficiently." />
           <TotalBalanceBox
-            accounts={accountData}
+            accounts={accountsData}
             totalBanks={accounts?.totalBanks}
             totalCurrentBalance={accounts?.totalCurrentBalance}
           />
         </header>
 
         <RecentTransactions
-          accounts={accountData}
+          accounts={accountsData}
           transactions={account?.transactions}
           appwriteItemId={appwriteItemId}
           page={currentPage}
@@ -52,7 +49,7 @@ const Home = async ({ searchParams }: SearchParamProps) => {
       <RightSidebar
         user={loggedIn}
         transactions={accounts?.transactions}
-        banks={accountData?.slice(0, 2)}
+        banks={accountsData?.slice(0, 2)}
       />
     </section>
   );

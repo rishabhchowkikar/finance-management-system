@@ -87,12 +87,16 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
 
         const dwollaCustomerId = extractCustomerIdFromUrl(dwollaCustomerUrl)
 
-        const newUser = await database.createDocument(DATABASE_ID!, USER_COLLECTION_ID!, ID.unique(), {
-            ...userData,
-            userId: newUserAccount.$id,
-            dwollaCustomerId,
-            dwollaCustomerUrl
-        })
+        const newUser = await database.createDocument(
+            DATABASE_ID!,
+            USER_COLLECTION_ID!,
+            ID.unique(),
+            {
+                ...userData,
+                userId: newUserAccount.$id,
+                dwollaCustomerId,
+                dwollaCustomerUrl
+            })
 
         const session = await account.createEmailPasswordSession(email, password);
 
@@ -145,13 +149,15 @@ export const createLinkToken = async (user: User) => {
     try {
         const tokenParams = {
             user: {
-                client_user_id: user.$id
+                client_user_id: user.$id,
             },
             client_name: `${user.firstName} ${user.lastName}`,
-            products: ['auth'] as Products[],
-            language: 'en',
-            country_codes: ["US"] as CountryCode[],
-        }
+            products: ["auth", "transactions", "identity"] as Products[], // Add "transactions" to the products array
+            language: "en",
+            country_codes: ["US", "ES"] as CountryCode[],
+            // update: { reauthorization_enabled: true }, // Enable reauthorization
+        };
+
 
         const response = await plaidClient.linkTokenCreate(tokenParams)
 
@@ -277,3 +283,18 @@ export const getBank = async ({ documentId }: getBankProps) => {
 }
 
 
+export const getBankByAccountId = async ({ accountId }: getBankByAccountIdProps) => {
+    try {
+        const { database } = await createAdminClient();
+        const bank = await database.listDocuments(
+            DATABASE_ID!,
+            BANK_COLLECTION_ID!,
+            [Query.equal('accountId', [accountId])]
+        )
+
+        if (bank.total !== 1) return null
+        return parseStringify(bank.documents[0])
+    } catch (error) {
+        console.log(error)
+    }
+}
