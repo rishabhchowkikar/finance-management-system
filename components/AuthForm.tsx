@@ -2,10 +2,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import React, { useState } from 'react'
-
-
-// shadcn form component 
-
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -15,11 +11,10 @@ import {
 } from "@/components/ui/form"
 import CustomInput from './CustomInput'
 import { authFormSchema } from '@/lib/utils'
-import { Loader2 } from 'lucide-react'
+import { Loader2, User, KeyRound } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { signIn, signUp } from '@/lib/actions/user.actions'
 import PlaidLink from './PlaidLink'
-// import SignUp from '@/app/(auth)/sign-up/page'
 
 const AuthForm = ({ type }: { type: string }) => {
     const router = useRouter();
@@ -141,6 +136,16 @@ const AuthForm = ({ type }: { type: string }) => {
                         <Link href={type === "sign-in" ? "/sign-up" : "/sign-in"} className="form-link" >{type === "sign-in" ? "Sign Up" : "Sign In"}</Link>
 
                     </footer>
+
+                    {
+                        type === "sign-in" && <small className='w-full flex flex-col items-center justify-center bg-blue-300/20 p-4 rounded-md space-y-3'>
+                            <h4 className='text-14 font-normal text-gray-600'>Dummy Login Credentials</h4>
+                            <ul>
+                                <li className='flex items-center justify-center gap-3'><User size={20} className="text-blue-600" /> <p>john.doe@email.com</p></li>
+                                <li className='flex items-center justify-center gap-3'><KeyRound size={20} className="text-blue-600" /> <p>john.doe@email.com</p></li>
+                            </ul>
+                        </small>
+                    }
                 </>
             )}
         </section>
@@ -148,9 +153,3 @@ const AuthForm = ({ type }: { type: string }) => {
 }
 
 export default AuthForm
-
-// 3:07:46 (continue from here) - {sign-in is not working}
-
-// 3:25:03 (sentry setup working)
-
-// sign-in functionality is now fixed
