@@ -4,7 +4,6 @@ import React from 'react'
 
 const SignIn = async () => {
   const loggedIn = await getLoggedInUser();
-  console.log(loggedIn)
   return (
 
     <section className='flex-center size-full max-sm:px-6' >
