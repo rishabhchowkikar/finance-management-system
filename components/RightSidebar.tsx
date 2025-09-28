@@ -4,9 +4,12 @@ import Link from 'next/link'
 import React from 'react'
 import BankCard from './BankCard'
 import Category from './Category'
+import QRCodeModal from './QRCodeModal'
 
 const RightSidebar = ({ user, transactions, banks }: RightSidebarProps) => {
     const categories: CategoryCount[] = countTransactionCategories(transactions);
+
+    const primaryCard = banks?.[0];
     return (
         <aside className='right-sidebar'>
             <section className="flex flex-col pb-8">
@@ -21,6 +24,32 @@ const RightSidebar = ({ user, transactions, banks }: RightSidebarProps) => {
                     </div>
                 </div>
             </section>
+            {primaryCard && (
+                <section className='mb-8 p-4'>
+                    <div className="flex w-full justify-between items-center mb-4">
+                        <h2 className='header-2'>Payment QR Code</h2>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border">
+                        <div className="flex items-center justify-between mb-3">
+                            <div>
+                                <h3 className="font-semibold text-gray-900">{primaryCard.name}</h3>
+                                <p className="text-sm text-gray-600">• • • • {primaryCard.mask}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-xs text-gray-500">Shareable ID</p>
+                                <p className="text-sm font-mono">{primaryCard.shareableId.substring(0, 8)}...</p>
+                            </div>
+                        </div>
+                        <QRCodeModal
+                            shareableId={primaryCard.shareableId}
+                            cardName={primaryCard.name}
+                            userName={`${user.firstName} ${user.lastName}`}
+                            userEmail={user.email}  // Pass user email
+                            cardMask={primaryCard.mask}
+                        />
+                    </div>
+                </section>
+            )}
             <section className='banks'>
                 <div className="flex w-full justify-between">
                     <h2 className='header-2'>My Banks</h2>

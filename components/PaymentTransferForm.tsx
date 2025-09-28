@@ -25,6 +25,7 @@ import {
 } from "./ui/form";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
+import PaymentQRScanner from "./PaymentQRScanner";
 
 const formSchema = z.object({
     email: z.string().email("Invalid email address"),
@@ -37,6 +38,12 @@ const formSchema = z.object({
 const PaymentTransferForm = ({ accounts }: PaymentTransferFormProps) => {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const [scannedData, setScannedData] = useState<{
+        shareableId: string;
+        cardName: string;
+        userName: string;
+        userEmail: string;
+    } | null>(null);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -48,6 +55,18 @@ const PaymentTransferForm = ({ accounts }: PaymentTransferFormProps) => {
             sharableId: "",
         },
     });
+
+    const handleQRScan = (data: {
+        shareableId: string;
+        cardName: string;
+        userName: string;
+        userEmail: string;
+    }) => {
+        setScannedData(data);
+        form.setValue('sharableId', data.shareableId);
+        form.setValue('email', data.userEmail);
+        form.setValue('name', `Transfer to ${data.cardName}`);
+    };
 
     const submit = async (data: z.infer<typeof formSchema>) => {
         setIsLoading(true);
@@ -124,6 +143,43 @@ const PaymentTransferForm = ({ accounts }: PaymentTransferFormProps) => {
                         </FormItem>
                     )}
                 />
+
+                {/* QR Scanner Section */}
+                <div className="border-t border-gray-200 py-5">
+                    <div className="payment-transfer_form-item">
+                        <div className="mb-4">
+                            <FormLabel className="text-14 font-medium text-gray-700">
+                                Recipient Details
+                            </FormLabel>
+                            <FormDescription className="text-12 font-normal text-gray-600">
+                                Scan QR code to automatically fill recipient details
+                            </FormDescription>
+                        </div>
+
+                        <PaymentQRScanner onScan={handleQRScan} />
+                    </div>
+                    {scannedData && (
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600">
+                                        <polyline points="20,6 9,17 4,12" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-green-800">QR Code Scanned Successfully</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-sm text-green-700">
+                                        <span className="font-medium">Recipient:</span> {scannedData.userName}
+                                    </p>
+                                    <p className="text-sm text-green-700">
+                                        <span className="font-medium">Email:</span> {scannedData.userEmail}
+                                    </p>
+                                    <p className="text-sm text-green-700">
+                                        <span className="font-medium">Account:</span> {scannedData.cardName}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                </div>
 
                 <FormField
                     control={form.control}
