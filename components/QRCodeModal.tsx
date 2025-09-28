@@ -71,6 +71,39 @@ const QRCodeModal = ({ shareableId, cardName, userName, cardMask, userEmail }: Q
             link.click()
         }
     }
+    const handleShare = () => {
+        if (qrCodeData) {
+            // Create a temporary link to share the QR code
+            const link = document.createElement('a')
+            link.href = qrCodeData
+            link.download = `qr-code-${cardName.replace(/\s+/g, '-').toLowerCase()}.png`
+            
+            // Create a share message
+            const shareText = `Send money to ${userName} (${userEmail})\n\nScan this QR code to transfer funds to ${cardName} account.\n\nShareable ID: ${shareableId}`
+            
+            // Try to use Web Share API if available
+            if (navigator.share) {
+                navigator.share({
+                    title: `${cardName} Payment QR Code`,
+                    text: shareText,
+                    url: window.location.href
+                }).catch((error) => {
+                    console.log('Share failed:', error)
+                    // Fallback to download
+                    link.click()
+                })
+            } else {
+                // Fallback: copy text to clipboard and download QR code
+                navigator.clipboard.writeText(shareText).then(() => {
+                    alert('Payment details copied to clipboard! QR code will be downloaded.')
+                    link.click()
+                }).catch(() => {
+                    // If clipboard fails, just download
+                    link.click()
+                })
+            }
+        }
+    }
 
     return (
         <Sheet>
@@ -153,13 +186,9 @@ const QRCodeModal = ({ shareableId, cardName, userName, cardMask, userEmail }: Q
                             Download
                         </Button>
                         <Button
-                            onClick={() => navigator.share?.({
-                                title: `${cardName} QR Code`,
-                                text: `Send money to ${userName}`,
-                                url: qrCodeData
-                            })}
+                            onClick={handleShare}
                             variant="default"
-                            className="flex items-center gap-2"
+                            className="flex items-center justify-center gap-2"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="18" cy="5" r="3" />
@@ -168,7 +197,7 @@ const QRCodeModal = ({ shareableId, cardName, userName, cardMask, userEmail }: Q
                                 <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
                                 <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
                             </svg>
-                            Share
+                            Share QR Code
                         </Button>
                     </div>
                 </div>
