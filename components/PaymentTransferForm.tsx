@@ -157,8 +157,8 @@ const PaymentTransferForm = ({ accounts }: PaymentTransferFormProps) => {
                         </div>
 
                         <PaymentQRScanner onScan={handleQRScan} />
-
-                        {scannedData && (
+                    </div>
+                    {scannedData && (
                             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
                                 <div className="flex items-center gap-2 mb-2">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600">
@@ -166,7 +166,7 @@ const PaymentTransferForm = ({ accounts }: PaymentTransferFormProps) => {
                                     </svg>
                                     <span className="text-sm font-medium text-green-800">QR Code Scanned Successfully</span>
                                 </div>
-                                <div className="space-y-1">
+                                <div className="flex items-center gap-2">
                                     <p className="text-sm text-green-700">
                                         <span className="font-medium">Recipient:</span> {scannedData.userName}
                                     </p>
@@ -179,7 +179,6 @@ const PaymentTransferForm = ({ accounts }: PaymentTransferFormProps) => {
                                 </div>
                             </div>
                         )}
-                    </div>
                 </div>
 
                 <FormField
